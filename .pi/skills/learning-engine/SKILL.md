@@ -5,7 +5,7 @@ description: Safely change Pi Learn retrieval, scheduling, evidence, assistance,
 
 # Learning-engine changes
 
-Before any meaningful change, read the focused docs relevant to the change:
+Before any meaningful change, check and state the current implementation stage from `docs/IMPLEMENTATION_PLAN.md`, then read the focused docs relevant to the change:
 
 ```text
 docs/LEARNING.md

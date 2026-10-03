@@ -4,6 +4,8 @@ Status: authoritative for milestone intent; details still require implementation
 
 Related docs: `PRODUCT.md` for scope, `ARCHITECTURE.md` for boundaries, `DATA_MODEL.md` for proposed schema.
 
+For the detailed staged implementation sequence, see `IMPLEMENTATION_PLAN.md`.
+
 ## V0: technical foundation
 
 Build only:

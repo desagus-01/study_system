@@ -16,11 +16,12 @@ Never make conversation history canonical state. Never let an LLM arbitrarily as
 
 ## Working agreement
 
-For substantial work: inspect relevant code and docs, plan before broad changes, implement the smallest coherent solution, run relevant tests and type checks, inspect the final diff, and report meaningful architectural decisions. Do not silently add significant dependencies or architecture. Start with `docs/README.md` to choose the smallest relevant documentation set.
+For substantial work: inspect relevant code and docs, plan before broad changes, implement the smallest coherent solution, run relevant tests and type checks, inspect the final diff, and report meaningful architectural decisions. Do not silently add significant dependencies or architecture. Start with `docs/README.md` to choose the smallest relevant documentation set. For implementation work, check `docs/IMPLEMENTATION_PLAN.md`, state the current implementation stage in the plan/final summary, and update that stage marker when completed work changes the active stage.
 
 ## Documentation routing
 
 - Product/scope work: read `docs/PRODUCT.md` and `docs/ROADMAP.md`.
+- Implementation sequencing or staged build planning: read `docs/IMPLEMENTATION_PLAN.md` and `docs/ROADMAP.md`.
 - Architecture, IPC, storage, or process-boundary work: read `docs/ARCHITECTURE.md`.
 - Database/schema work: read `docs/DATA_MODEL.md`; for concept-map semantics also read `docs/GRAPH_MODEL.md`.
 - Learning-engine work: read `docs/LEARNING.md`, `docs/RETRIEVAL_AND_SCHEDULING.md`, and `docs/MISCONCEPTIONS.md` as relevant.

@@ -10,6 +10,9 @@ Use this file to choose the smallest useful context before changing code. Prefer
 - System boundaries and ownership: `ARCHITECTURE.md`
 - Pedagogical invariants: `LEARNING.md`
 - Development commands and setup: `DEVELOPMENT.md`
+- Staged implementation plan: `IMPLEMENTATION_PLAN.md`
+
+For implementation work, agents must check `IMPLEMENTATION_PLAN.md` for the current implementation stage, state that stage in their plan/final summary, and update it when completed work changes the active stage.
 
 ## Task routing for Pi agents
 
@@ -24,6 +27,7 @@ Use this file to choose the smallest useful context before changing code. Prefer
 | Renderer learning flows or screens | `UX_WORKFLOWS.md`, `LEARNING.md`, `PRODUCT.md` |
 | Analytics, experiments, validation, gold sets | `EVALUATION.md`, `RETRIEVAL_AND_SCHEDULING.md` |
 | Scope or sequencing decisions | `ROADMAP.md`, `PRODUCT.md` |
+| Implementation sequencing, staged build plan | `IMPLEMENTATION_PLAN.md`, `ROADMAP.md` |
 | Research justification | `research/LEARNING_SCIENCE.md`, `research/SOURCE_REVIEW.md` |
 
 ## Document statuses

@@ -10,6 +10,8 @@ Follow this workflow:
 ```text
 read relevant docs
         ↓
+check and state current implementation stage
+        ↓
 inspect existing implementation
         ↓
 understand current patterns
@@ -25,11 +27,11 @@ inspect diff
 summarize important decisions
 ```
 
-Keep the change focused. Do not perform unrelated cleanup while implementing a feature.
+Keep the change focused. Do not perform unrelated cleanup while implementing a feature. For implementation work, check `docs/IMPLEMENTATION_PLAN.md`, state the current implementation stage in the plan/final summary, and update that stage marker if the work changes the active stage.
 
 ## Documentation checklist
 
-Start with `docs/README.md`, then load the smallest relevant set:
+Start with `docs/README.md`, check the current stage in `docs/IMPLEMENTATION_PLAN.md`, then load the smallest relevant set:
 
 - Product/scope feature: `docs/PRODUCT.md`, `docs/ROADMAP.md`.
 - Architecture/IPC/storage boundary: `docs/ARCHITECTURE.md`.
