@@ -1,0 +1,36 @@
+{
+  "name": "pi-learn",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A local-first AI study environment.",
+  "main": ".vite/build/main.js",
+  "packageManager": "pnpm@12.8.1",
+  "scripts": {
+    "dev": "electron-forge start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "electron-forge package"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "1.0.0",
+    "@xyflow/react": "12.12.0",
+    "better-sqlite3": "13.0.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "8.0.1",
+    "@electron-forge/plugin-auto-unpack-natives": "8.0.1",
+    "@electron-forge/plugin-vite": "8.0.1",
+    "@types/better-sqlite3": "7.6.13",
+    "@types/node": "24.12.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.1.1",
+    "electron": "44.5.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.2",
+    "vitest": "5.0.3"
+  }
+}
