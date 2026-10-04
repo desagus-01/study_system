@@ -26,7 +26,7 @@ Revise this plan as implementation evidence accumulates. If the code, user testi
 
 ## Current implementation stage
 
-Current stage: **Stage 1 — Foundation / V0**.
+Current stage: **Stage 2 — Canonical study model**.
 
 Agents doing implementation work must state this current implementation stage in their working plan and final summary. When implementation completes enough exit criteria to move forward, update this section in the same change. Do not silently continue under an outdated stage label.
 

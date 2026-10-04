@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "description": "A local-first AI study environment.",
-  "main": ".vite/build/main.js",
+  "main": ".vite/build/main.cjs",
   "packageManager": "pnpm@12.8.1",
   "scripts": {
     "dev": "electron-forge start",
