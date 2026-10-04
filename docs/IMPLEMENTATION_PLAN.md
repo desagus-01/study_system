@@ -34,26 +34,20 @@ The central architecture rule still applies throughout: the deterministic applic
 
 ## Current coding state
 
-At the time this plan was created:
+Stage 1 foundation is implemented:
 
-- the working tree was clean on `master`;
-- source code existed only in the shared IPC/type layer:
-  - `src/shared/ipc.ts`;
-  - `src/shared/schemas.ts`;
-  - `src/shared/types.ts`;
-- Electron Forge configuration expected entry files that were not yet implemented:
+- Electron Forge builds a main process, sandboxed preload bridge and React renderer:
   - `src/main/main.ts`;
   - `src/preload/preload.ts`;
   - `src/renderer/...`;
-- no tests existed;
-- no `node_modules` directory existed;
-- no `pnpm-lock.yaml` existed;
-- package scripts existed for:
-  - `dev`;
-  - `test`;
-  - `typecheck`;
-  - `build`;
-- documentation was ahead of implementation and already defined the intended architecture, learning constraints and product scope.
+- `getSystemStatus()` is exposed through a narrow typed IPC contract;
+- the main process opens a local SQLite database with WAL enabled;
+- Pi runtime configuration is detected and reported as available, not configured or error;
+- tests cover SQLite bootstrap, Pi runtime status and the shared status schema;
+- `pnpm-lock.yaml` and installed dependencies are present;
+- package scripts exist for `dev`, `test`, `typecheck` and `build`.
+
+Stage 2 has not yet implemented canonical study tables, migrations, repositories or study-model IPC operations. Documentation remains ahead of that implementation and defines the intended architecture, learning constraints and product scope.
 
 ## Stage summary
 
