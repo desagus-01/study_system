@@ -6,7 +6,43 @@ export interface DatabaseMigration {
   up(database: Database.Database): void;
 }
 
-export const DATABASE_MIGRATIONS: readonly DatabaseMigration[] = [];
+export const DATABASE_MIGRATIONS: readonly DatabaseMigration[] = [
+  {
+    version: 1,
+    name: "create course and source tables",
+    up: (database) => {
+      database.exec(`
+        CREATE TABLE courses (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE sources (
+          id TEXT PRIMARY KEY,
+          course_id TEXT NOT NULL REFERENCES courses(id),
+          title TEXT NOT NULL,
+          source_type TEXT NOT NULL CHECK (source_type IN ('document', 'note', 'web')),
+          created_at TEXT NOT NULL
+        );
+
+        CREATE INDEX sources_course_id_index ON sources(course_id);
+
+        CREATE TABLE source_segments (
+          id TEXT PRIMARY KEY,
+          source_id TEXT NOT NULL REFERENCES sources(id),
+          ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
+          content TEXT NOT NULL,
+          location_label TEXT,
+          created_at TEXT NOT NULL,
+          UNIQUE (source_id, ordinal)
+        );
+
+        CREATE INDEX source_segments_source_id_index ON source_segments(source_id);
+      `);
+    }
+  }
+];
 
 export function runMigrations(
   database: Database.Database,
