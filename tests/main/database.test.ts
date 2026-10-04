@@ -22,6 +22,14 @@ describe("openDatabase", () => {
     const database = openDatabase(databasePath);
 
     expect(database.prepare("SELECT 1 AS value").get()).toEqual({ value: 1 });
+    expect(database.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
+    expect(
+      database
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'"
+        )
+        .get()
+    ).toEqual({ name: "schema_migrations" });
     expect(existsSync(databasePath)).toBe(true);
 
     database.close();
