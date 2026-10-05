@@ -107,6 +107,27 @@ export const DATABASE_MIGRATIONS: readonly DatabaseMigration[] = [
         CREATE INDEX relationship_versions_relationship_id_index ON relationship_versions(relationship_id);
       `);
     }
+  },
+  {
+    version: 4,
+    name: "create evidence reference table",
+    up: (database) => {
+      database.exec(`
+        CREATE TABLE evidence_refs (
+          id TEXT PRIMARY KEY,
+          entity_type TEXT NOT NULL CHECK (entity_type IN ('concept', 'relationship')),
+          entity_id TEXT NOT NULL,
+          source_segment_id TEXT NOT NULL REFERENCES source_segments(id),
+          support_type TEXT NOT NULL CHECK (support_type IN ('supports', 'contradicts', 'contextualises')),
+          created_by TEXT NOT NULL CHECK (created_by IN ('user', 'pi', 'import')),
+          verified INTEGER NOT NULL CHECK (verified IN (0, 1)),
+          created_at TEXT NOT NULL
+        );
+
+        CREATE INDEX evidence_refs_entity_index ON evidence_refs(entity_type, entity_id);
+        CREATE INDEX evidence_refs_source_segment_id_index ON evidence_refs(source_segment_id);
+      `);
+    }
   }
 ];
 

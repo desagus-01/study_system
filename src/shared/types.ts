@@ -4,6 +4,9 @@ import type {
   ConceptKindSchema,
   ConceptUpdateSchema,
   CourseCreateSchema,
+  EvidenceEntityTypeSchema,
+  EvidenceRefCreateSchema,
+  EvidenceSupportTypeSchema,
   PiStatusSchema,
   RelationshipCreateSchema,
   RelationshipUpdateSchema,
@@ -18,6 +21,9 @@ export type ConceptCreate = z.infer<typeof ConceptCreateSchema>;
 export type ConceptKind = z.infer<typeof ConceptKindSchema>;
 export type ConceptUpdate = z.infer<typeof ConceptUpdateSchema>;
 export type CourseCreate = z.infer<typeof CourseCreateSchema>;
+export type EvidenceEntityType = z.infer<typeof EvidenceEntityTypeSchema>;
+export type EvidenceRefCreate = z.infer<typeof EvidenceRefCreateSchema>;
+export type EvidenceSupportType = z.infer<typeof EvidenceSupportTypeSchema>;
 export type PiStatus = z.infer<typeof PiStatusSchema>;
 export type RelationshipCreate = z.infer<typeof RelationshipCreateSchema>;
 export type RelationshipUpdate = z.infer<typeof RelationshipUpdateSchema>;

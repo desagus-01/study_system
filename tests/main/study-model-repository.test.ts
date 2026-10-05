@@ -7,11 +7,13 @@ import { openDatabase } from "../../src/main/database";
 import {
   createConcept,
   createCourse,
+  createEvidenceRef,
   createRelationship,
   createSource,
   createSourceSegment,
   listConceptVersions,
   listCourses,
+  listEvidenceRefs,
   listRelationshipVersions,
   listSourceSegments,
   listSources,
@@ -86,6 +88,79 @@ describe("study model repository", () => {
         title: "Missing concept"
       })
     ).toThrow("Concept not found.");
+
+    database.close();
+  });
+
+  it("attaches source-grounded evidence to concepts and relationships", () => {
+    const database = openTestDatabase();
+    const course = createCourse(database, { title: "Biology" });
+    const source = createSource(database, {
+      courseId: course.id,
+      title: "Cell biology",
+      sourceType: "document"
+    });
+    const sourceSegment = createSourceSegment(database, {
+      sourceId: source.id,
+      ordinal: 0,
+      content: "The cell membrane regulates material transport."
+    });
+    const concept = createConcept(database, {
+      courseId: course.id,
+      kind: "concept",
+      canonicalLabel: "Cell membrane",
+      title: "Cell membrane"
+    });
+    const evidenceRef = createEvidenceRef(database, {
+      entityType: "concept",
+      entityId: concept.id,
+      sourceSegmentId: sourceSegment.id,
+      supportType: "supports",
+      verified: true
+    });
+
+    expect(listEvidenceRefs(database, "concept", concept.id)).toEqual([evidenceRef]);
+
+    database.close();
+  });
+
+  it("rejects evidence that targets missing or cross-course records", () => {
+    const database = openTestDatabase();
+    const firstCourse = createCourse(database, { title: "Biology" });
+    const secondCourse = createCourse(database, { title: "Chemistry" });
+    const source = createSource(database, {
+      courseId: firstCourse.id,
+      title: "Biology notes",
+      sourceType: "note"
+    });
+    const sourceSegment = createSourceSegment(database, {
+      sourceId: source.id,
+      ordinal: 0,
+      content: "A cell is a basic unit of life."
+    });
+    const concept = createConcept(database, {
+      courseId: secondCourse.id,
+      kind: "concept",
+      canonicalLabel: "Atom",
+      title: "Atom"
+    });
+
+    expect(() =>
+      createEvidenceRef(database, {
+        entityType: "concept",
+        entityId: concept.id,
+        sourceSegmentId: sourceSegment.id,
+        supportType: "supports"
+      })
+    ).toThrow("Evidence must connect an entity and source segment from the same course.");
+    expect(() =>
+      createEvidenceRef(database, {
+        entityType: "relationship",
+        entityId: "2ae5cef4-e846-4d5a-98e1-47d33d9167f5",
+        sourceSegmentId: sourceSegment.id,
+        supportType: "supports"
+      })
+    ).toThrow("Evidence must connect an entity and source segment from the same course.");
 
     database.close();
   });

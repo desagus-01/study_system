@@ -6,12 +6,19 @@ import {
   ConceptCreateSchema,
   ConceptUpdateSchema,
   CourseCreateSchema,
+  EvidenceRefCreateSchema,
   RelationshipCreateSchema,
   RelationshipUpdateSchema,
   SourceCreateSchema,
   SourceSegmentCreateSchema
 } from "../shared/schemas";
-import type { ConceptKind, RelationType, SourceType } from "../shared/types";
+import type {
+  ConceptKind,
+  EvidenceEntityType,
+  EvidenceSupportType,
+  RelationType,
+  SourceType
+} from "../shared/types";
 
 export interface Course {
   id: string;
@@ -38,6 +45,17 @@ export interface ConceptVersion {
   scope: string | null;
   importance: number | null;
   supersedesId: string | null;
+  createdAt: string;
+}
+
+export interface EvidenceRef {
+  id: string;
+  entityType: EvidenceEntityType;
+  entityId: string;
+  sourceSegmentId: string;
+  supportType: EvidenceSupportType;
+  createdBy: "user";
+  verified: boolean;
   createdAt: string;
 }
 
@@ -177,6 +195,51 @@ export function listConceptVersions(
       "SELECT id, concept_id AS conceptId, title, user_definition AS userDefinition, scope, importance, supersedes_id AS supersedesId, created_at AS createdAt FROM concept_versions WHERE concept_id = ? ORDER BY created_at, id"
     )
     .all(conceptId) as ConceptVersion[];
+}
+
+export function createEvidenceRef(database: Database.Database, input: unknown): EvidenceRef {
+  const values = EvidenceRefCreateSchema.parse(input);
+  assertEvidenceRefTargetsAreValid(database, values.entityType, values.entityId, values.sourceSegmentId);
+  const evidenceRef: EvidenceRef = {
+    id: randomUUID(),
+    entityType: values.entityType,
+    entityId: values.entityId,
+    sourceSegmentId: values.sourceSegmentId,
+    supportType: values.supportType,
+    createdBy: "user",
+    verified: values.verified,
+    createdAt: new Date().toISOString()
+  };
+
+  database
+    .prepare(
+      "INSERT INTO evidence_refs (id, entity_type, entity_id, source_segment_id, support_type, created_by, verified, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+    .run(
+      evidenceRef.id,
+      evidenceRef.entityType,
+      evidenceRef.entityId,
+      evidenceRef.sourceSegmentId,
+      evidenceRef.supportType,
+      evidenceRef.createdBy,
+      Number(evidenceRef.verified),
+      evidenceRef.createdAt
+    );
+
+  return evidenceRef;
+}
+
+export function listEvidenceRefs(
+  database: Database.Database,
+  entityType: EvidenceEntityType,
+  entityId: string
+): EvidenceRef[] {
+  return (database
+    .prepare(
+      "SELECT id, entity_type AS entityType, entity_id AS entityId, source_segment_id AS sourceSegmentId, support_type AS supportType, created_by AS createdBy, verified, created_at AS createdAt FROM evidence_refs WHERE entity_type = ? AND entity_id = ? ORDER BY created_at, id"
+    )
+    .all(entityType, entityId) as Array<Omit<EvidenceRef, "verified"> & { verified: number }>)
+    .map((evidenceRef) => ({ ...evidenceRef, verified: evidenceRef.verified === 1 }));
 }
 
 export function createRelationship(
@@ -373,6 +436,27 @@ function insertRelationshipVersion(
       version.supersedesId,
       version.createdAt
     );
+}
+
+function assertEvidenceRefTargetsAreValid(
+  database: Database.Database,
+  entityType: EvidenceEntityType,
+  entityId: string,
+  sourceSegmentId: string
+): void {
+  const entityTable = entityType === "concept" ? "concepts" : "relationships";
+  const entity = database
+    .prepare(`SELECT course_id AS courseId FROM ${entityTable} WHERE id = ?`)
+    .get(entityId) as { courseId: string } | undefined;
+  const sourceSegment = database
+    .prepare(
+      "SELECT sources.course_id AS courseId FROM source_segments JOIN sources ON sources.id = source_segments.source_id WHERE source_segments.id = ?"
+    )
+    .get(sourceSegmentId) as { courseId: string } | undefined;
+
+  if (!entity || !sourceSegment || entity.courseId !== sourceSegment.courseId) {
+    throw new Error("Evidence must connect an entity and source segment from the same course.");
+  }
 }
 
 function assertRelationshipConceptsBelongToCourse(

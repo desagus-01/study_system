@@ -71,6 +71,21 @@ export const RelationshipCreateSchema = RelationshipVersionSchema.extend({
 
 export const RelationshipUpdateSchema = RelationshipVersionSchema;
 
+export const EvidenceEntityTypeSchema = z.enum(["concept", "relationship"]);
+export const EvidenceSupportTypeSchema = z.enum([
+  "supports",
+  "contradicts",
+  "contextualises"
+]);
+
+export const EvidenceRefCreateSchema = z.object({
+  entityType: EvidenceEntityTypeSchema,
+  entityId: IdSchema,
+  sourceSegmentId: IdSchema,
+  supportType: EvidenceSupportTypeSchema,
+  verified: z.boolean().default(false)
+});
+
 export const PiStatusSchema = z.enum(["available", "not configured", "error"]);
 
 export const SystemStatusSchema = z.object({
