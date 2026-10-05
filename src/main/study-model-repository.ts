@@ -6,10 +6,12 @@ import {
   ConceptCreateSchema,
   ConceptUpdateSchema,
   CourseCreateSchema,
+  RelationshipCreateSchema,
+  RelationshipUpdateSchema,
   SourceCreateSchema,
   SourceSegmentCreateSchema
 } from "../shared/schemas";
-import type { ConceptKind, SourceType } from "../shared/types";
+import type { ConceptKind, RelationType, SourceType } from "../shared/types";
 
 export interface Course {
   id: string;
@@ -34,6 +36,28 @@ export interface ConceptVersion {
   title: string;
   userDefinition: string | null;
   scope: string | null;
+  importance: number | null;
+  supersedesId: string | null;
+  createdAt: string;
+}
+
+export interface Relationship {
+  id: string;
+  courseId: string;
+  sourceConceptId: string;
+  targetConceptId: string;
+  relationType: RelationType;
+  status: "confirmed";
+  createdBy: "user";
+  currentVersionId: string;
+  createdAt: string;
+}
+
+export interface RelationshipVersion {
+  id: string;
+  relationshipId: string;
+  propositionText: string;
+  conditions: Record<string, unknown> | null;
   importance: number | null;
   supersedesId: string | null;
   createdAt: string;
@@ -155,6 +179,97 @@ export function listConceptVersions(
     .all(conceptId) as ConceptVersion[];
 }
 
+export function createRelationship(
+  database: Database.Database,
+  input: unknown
+): Relationship {
+  const values = RelationshipCreateSchema.parse(input);
+  assertRelationshipConceptsBelongToCourse(database, values.courseId, values.sourceConceptId, values.targetConceptId);
+  const relationshipId = randomUUID();
+  const versionId = randomUUID();
+  const createdAt = new Date().toISOString();
+  const relationship: Relationship = {
+    id: relationshipId,
+    courseId: values.courseId,
+    sourceConceptId: values.sourceConceptId,
+    targetConceptId: values.targetConceptId,
+    relationType: values.relationType,
+    status: "confirmed",
+    createdBy: "user",
+    currentVersionId: versionId,
+    createdAt
+  };
+
+  database.transaction(() => {
+    database
+      .prepare(
+        "INSERT INTO relationships (id, course_id, source_concept_id, target_concept_id, relation_type, status, created_by, current_version_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)"
+      )
+      .run(
+        relationship.id,
+        relationship.courseId,
+        relationship.sourceConceptId,
+        relationship.targetConceptId,
+        relationship.relationType,
+        relationship.status,
+        relationship.createdBy,
+        relationship.createdAt
+      );
+    insertRelationshipVersion(database, versionId, relationship.id, values, null, createdAt);
+    database
+      .prepare("UPDATE relationships SET current_version_id = ? WHERE id = ?")
+      .run(versionId, relationship.id);
+  })();
+
+  return relationship;
+}
+
+export function updateRelationship(
+  database: Database.Database,
+  relationshipId: string,
+  input: unknown
+): RelationshipVersion {
+  const values = RelationshipUpdateSchema.parse(input);
+  const relationship = database
+    .prepare("SELECT current_version_id AS currentVersionId FROM relationships WHERE id = ?")
+    .get(relationshipId) as { currentVersionId: string } | undefined;
+
+  if (!relationship) {
+    throw new Error("Relationship not found.");
+  }
+
+  const version = createRelationshipVersion(
+    randomUUID(),
+    relationshipId,
+    values,
+    relationship.currentVersionId,
+    new Date().toISOString()
+  );
+  database.transaction(() => {
+    insertRelationshipVersion(database, version.id, relationshipId, values, version.supersedesId, version.createdAt);
+    database
+      .prepare("UPDATE relationships SET current_version_id = ? WHERE id = ?")
+      .run(version.id, relationshipId);
+  })();
+
+  return version;
+}
+
+export function listRelationshipVersions(
+  database: Database.Database,
+  relationshipId: string
+): RelationshipVersion[] {
+  return (database
+    .prepare(
+      "SELECT id, relationship_id AS relationshipId, proposition_text AS propositionText, conditions_json AS conditionsJson, importance, supersedes_id AS supersedesId, created_at AS createdAt FROM relationship_versions WHERE relationship_id = ? ORDER BY created_at, id"
+    )
+    .all(relationshipId) as Array<Omit<RelationshipVersion, "conditions"> & { conditionsJson: string | null }>)
+    .map(({ conditionsJson, ...version }) => ({
+      ...version,
+      conditions: conditionsJson ? (JSON.parse(conditionsJson) as Record<string, unknown>) : null
+    }));
+}
+
 export function createSource(database: Database.Database, input: unknown): Source {
   const values = SourceCreateSchema.parse(input);
   const source: Source = {
@@ -216,6 +331,63 @@ function insertConceptVersion(
       version.supersedesId,
       version.createdAt
     );
+}
+
+function createRelationshipVersion(
+  id: string,
+  relationshipId: string,
+  values: { propositionText: string; conditions?: Record<string, unknown>; importance?: number },
+  supersedesId: string | null,
+  createdAt: string
+): RelationshipVersion {
+  return {
+    id,
+    relationshipId,
+    propositionText: values.propositionText,
+    conditions: values.conditions ?? null,
+    importance: values.importance ?? null,
+    supersedesId,
+    createdAt
+  };
+}
+
+function insertRelationshipVersion(
+  database: Database.Database,
+  id: string,
+  relationshipId: string,
+  values: { propositionText: string; conditions?: Record<string, unknown>; importance?: number },
+  supersedesId: string | null,
+  createdAt: string
+): void {
+  const version = createRelationshipVersion(id, relationshipId, values, supersedesId, createdAt);
+  database
+    .prepare(
+      "INSERT INTO relationship_versions (id, relationship_id, proposition_text, conditions_json, importance, supersedes_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    )
+    .run(
+      version.id,
+      version.relationshipId,
+      version.propositionText,
+      version.conditions ? JSON.stringify(version.conditions) : null,
+      version.importance,
+      version.supersedesId,
+      version.createdAt
+    );
+}
+
+function assertRelationshipConceptsBelongToCourse(
+  database: Database.Database,
+  courseId: string,
+  sourceConceptId: string,
+  targetConceptId: string
+): void {
+  const concept = database.prepare("SELECT course_id AS courseId FROM concepts WHERE id = ?");
+  const sourceConcept = concept.get(sourceConceptId) as { courseId: string } | undefined;
+  const targetConcept = concept.get(targetConceptId) as { courseId: string } | undefined;
+
+  if (sourceConcept?.courseId !== courseId || targetConcept?.courseId !== courseId) {
+    throw new Error("Relationship concepts must belong to its course.");
+  }
 }
 
 export function listSources(database: Database.Database, courseId: string): Source[] {

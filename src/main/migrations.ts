@@ -74,6 +74,39 @@ export const DATABASE_MIGRATIONS: readonly DatabaseMigration[] = [
         CREATE INDEX concept_versions_concept_id_index ON concept_versions(concept_id);
       `);
     }
+  },
+  {
+    version: 3,
+    name: "create relationship tables",
+    up: (database) => {
+      database.exec(`
+        CREATE TABLE relationships (
+          id TEXT PRIMARY KEY,
+          course_id TEXT NOT NULL REFERENCES courses(id),
+          source_concept_id TEXT NOT NULL REFERENCES concepts(id),
+          target_concept_id TEXT NOT NULL REFERENCES concepts(id),
+          relation_type TEXT NOT NULL CHECK (relation_type IN ('is_a', 'part_of', 'requires', 'enables', 'causes_or_influences', 'derived_from', 'transforms_to', 'applies_to', 'contrasts_with', 'analogous_to')),
+          status TEXT NOT NULL CHECK (status IN ('draft', 'confirmed', 'rejected')),
+          created_by TEXT NOT NULL CHECK (created_by IN ('user', 'import', 'pi_proposal')),
+          current_version_id TEXT REFERENCES relationship_versions(id),
+          created_at TEXT NOT NULL
+        );
+
+        CREATE INDEX relationships_course_id_index ON relationships(course_id);
+
+        CREATE TABLE relationship_versions (
+          id TEXT PRIMARY KEY,
+          relationship_id TEXT NOT NULL REFERENCES relationships(id),
+          proposition_text TEXT NOT NULL,
+          conditions_json TEXT,
+          importance INTEGER CHECK (importance BETWEEN 1 AND 5),
+          supersedes_id TEXT REFERENCES relationship_versions(id),
+          created_at TEXT NOT NULL
+        );
+
+        CREATE INDEX relationship_versions_relationship_id_index ON relationship_versions(relationship_id);
+      `);
+    }
   }
 ];
 

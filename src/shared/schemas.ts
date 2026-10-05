@@ -43,6 +43,34 @@ export const ConceptCreateSchema = z.object({
 
 export const ConceptUpdateSchema = ConceptCreateSchema.omit({ courseId: true, kind: true, canonicalLabel: true });
 
+export const RelationTypeSchema = z.enum([
+  "is_a",
+  "part_of",
+  "requires",
+  "enables",
+  "causes_or_influences",
+  "derived_from",
+  "transforms_to",
+  "applies_to",
+  "contrasts_with",
+  "analogous_to"
+]);
+
+const RelationshipVersionSchema = z.object({
+  propositionText: z.string().trim().min(1).max(2_000),
+  conditions: z.record(z.string(), z.unknown()).optional(),
+  importance: z.number().int().min(1).max(5).optional()
+});
+
+export const RelationshipCreateSchema = RelationshipVersionSchema.extend({
+  courseId: IdSchema,
+  sourceConceptId: IdSchema,
+  targetConceptId: IdSchema,
+  relationType: RelationTypeSchema
+});
+
+export const RelationshipUpdateSchema = RelationshipVersionSchema;
+
 export const PiStatusSchema = z.enum(["available", "not configured", "error"]);
 
 export const SystemStatusSchema = z.object({

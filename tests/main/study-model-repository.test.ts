@@ -7,13 +7,16 @@ import { openDatabase } from "../../src/main/database";
 import {
   createConcept,
   createCourse,
+  createRelationship,
   createSource,
   createSourceSegment,
   listConceptVersions,
   listCourses,
+  listRelationshipVersions,
   listSourceSegments,
   listSources,
-  updateConcept
+  updateConcept,
+  updateRelationship
 } from "../../src/main/study-model-repository";
 
 const temporaryDirectories: string[] = [];
@@ -83,6 +86,87 @@ describe("study model repository", () => {
         title: "Missing concept"
       })
     ).toThrow("Concept not found.");
+
+    database.close();
+  });
+
+  it("creates immutable proposition-labelled relationship versions", () => {
+    const database = openTestDatabase();
+    const course = createCourse(database, { title: "Physics" });
+    const force = createConcept(database, {
+      courseId: course.id,
+      kind: "concept",
+      canonicalLabel: "Force",
+      title: "Force"
+    });
+    const acceleration = createConcept(database, {
+      courseId: course.id,
+      kind: "concept",
+      canonicalLabel: "Acceleration",
+      title: "Acceleration"
+    });
+    const relationship = createRelationship(database, {
+      courseId: course.id,
+      sourceConceptId: force.id,
+      targetConceptId: acceleration.id,
+      relationType: "causes_or_influences",
+      propositionText: "A net force causes acceleration.",
+      conditions: { system: "constant mass" },
+      importance: 5
+    });
+    const updatedVersion = updateRelationship(database, relationship.id, {
+      propositionText: "A net force produces acceleration inversely proportional to mass.",
+      importance: 5
+    });
+
+    expect(listRelationshipVersions(database, relationship.id)).toEqual([
+      expect.objectContaining({
+        id: relationship.currentVersionId,
+        propositionText: "A net force causes acceleration.",
+        conditions: { system: "constant mass" },
+        supersedesId: null
+      }),
+      updatedVersion
+    ]);
+
+    database.close();
+  });
+
+  it("rejects invalid relationship propositions and cross-course concepts", () => {
+    const database = openTestDatabase();
+    const firstCourse = createCourse(database, { title: "Biology" });
+    const secondCourse = createCourse(database, { title: "Chemistry" });
+    const firstConcept = createConcept(database, {
+      courseId: firstCourse.id,
+      kind: "concept",
+      canonicalLabel: "Cell",
+      title: "Cell"
+    });
+    const secondConcept = createConcept(database, {
+      courseId: secondCourse.id,
+      kind: "concept",
+      canonicalLabel: "Atom",
+      title: "Atom"
+    });
+
+    expect(() =>
+      createRelationship(database, {
+        courseId: firstCourse.id,
+        sourceConceptId: firstConcept.id,
+        targetConceptId: secondConcept.id,
+        relationType: "requires",
+        propositionText: "Requires an atom."
+      })
+    ).toThrow("Relationship concepts must belong to its course.");
+    expect(() =>
+      createRelationship(database, {
+        courseId: firstCourse.id,
+        sourceConceptId: firstConcept.id,
+        targetConceptId: firstConcept.id,
+        relationType: "not-a-relation",
+        propositionText: "   "
+      })
+    ).toThrow();
 
     database.close();
   });
