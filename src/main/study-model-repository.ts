@@ -3,15 +3,39 @@ import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 
 import {
+  ConceptCreateSchema,
+  ConceptUpdateSchema,
   CourseCreateSchema,
   SourceCreateSchema,
   SourceSegmentCreateSchema
 } from "../shared/schemas";
-import type { SourceType } from "../shared/types";
+import type { ConceptKind, SourceType } from "../shared/types";
 
 export interface Course {
   id: string;
   title: string;
+  createdAt: string;
+}
+
+export interface Concept {
+  id: string;
+  courseId: string;
+  kind: ConceptKind;
+  canonicalLabel: string;
+  status: "active";
+  createdBy: "user";
+  currentVersionId: string;
+  createdAt: string;
+}
+
+export interface ConceptVersion {
+  id: string;
+  conceptId: string;
+  title: string;
+  userDefinition: string | null;
+  scope: string | null;
+  importance: number | null;
+  supersedesId: string | null;
   createdAt: string;
 }
 
@@ -53,6 +77,84 @@ export function listCourses(database: Database.Database): Course[] {
     .all() as Course[];
 }
 
+export function createConcept(database: Database.Database, input: unknown): Concept {
+  const values = ConceptCreateSchema.parse(input);
+  const conceptId = randomUUID();
+  const versionId = randomUUID();
+  const createdAt = new Date().toISOString();
+  const concept: Concept = {
+    id: conceptId,
+    courseId: values.courseId,
+    kind: values.kind,
+    canonicalLabel: values.canonicalLabel,
+    status: "active",
+    createdBy: "user",
+    currentVersionId: versionId,
+    createdAt
+  };
+
+  database.transaction(() => {
+    database
+      .prepare(
+        "INSERT INTO concepts (id, course_id, kind, canonical_label, status, created_by, current_version_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)"
+      )
+      .run(
+        concept.id,
+        concept.courseId,
+        concept.kind,
+        concept.canonicalLabel,
+        concept.status,
+        concept.createdBy,
+        concept.createdAt
+      );
+    insertConceptVersion(database, versionId, concept.id, values, null, createdAt);
+    database
+      .prepare("UPDATE concepts SET current_version_id = ? WHERE id = ?")
+      .run(versionId, concept.id);
+  })();
+
+  return concept;
+}
+
+export function updateConcept(
+  database: Database.Database,
+  conceptId: string,
+  input: unknown
+): ConceptVersion {
+  const values = ConceptUpdateSchema.parse(input);
+  const currentConcept = database
+    .prepare("SELECT current_version_id AS currentVersionId FROM concepts WHERE id = ?")
+    .get(conceptId) as { currentVersionId: string } | undefined;
+
+  if (!currentConcept) {
+    throw new Error("Concept not found.");
+  }
+
+  const versionId = randomUUID();
+  const createdAt = new Date().toISOString();
+  const version = createConceptVersion(versionId, conceptId, values, currentConcept.currentVersionId, createdAt);
+
+  database.transaction(() => {
+    insertConceptVersion(database, version.id, conceptId, values, version.supersedesId, createdAt);
+    database
+      .prepare("UPDATE concepts SET current_version_id = ? WHERE id = ?")
+      .run(version.id, conceptId);
+  })();
+
+  return version;
+}
+
+export function listConceptVersions(
+  database: Database.Database,
+  conceptId: string
+): ConceptVersion[] {
+  return database
+    .prepare(
+      "SELECT id, concept_id AS conceptId, title, user_definition AS userDefinition, scope, importance, supersedes_id AS supersedesId, created_at AS createdAt FROM concept_versions WHERE concept_id = ? ORDER BY created_at, id"
+    )
+    .all(conceptId) as ConceptVersion[];
+}
+
 export function createSource(database: Database.Database, input: unknown): Source {
   const values = SourceCreateSchema.parse(input);
   const source: Source = {
@@ -70,6 +172,50 @@ export function createSource(database: Database.Database, input: unknown): Sourc
     .run(source.id, source.courseId, source.title, source.sourceType, source.createdAt);
 
   return source;
+}
+
+function createConceptVersion(
+  id: string,
+  conceptId: string,
+  values: { title: string; userDefinition?: string; scope?: string; importance?: number },
+  supersedesId: string | null,
+  createdAt: string
+): ConceptVersion {
+  return {
+    id,
+    conceptId,
+    title: values.title,
+    userDefinition: values.userDefinition ?? null,
+    scope: values.scope ?? null,
+    importance: values.importance ?? null,
+    supersedesId,
+    createdAt
+  };
+}
+
+function insertConceptVersion(
+  database: Database.Database,
+  id: string,
+  conceptId: string,
+  values: { title: string; userDefinition?: string; scope?: string; importance?: number },
+  supersedesId: string | null,
+  createdAt: string
+): void {
+  const version = createConceptVersion(id, conceptId, values, supersedesId, createdAt);
+  database
+    .prepare(
+      "INSERT INTO concept_versions (id, concept_id, title, user_definition, scope, importance, supersedes_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+    .run(
+      version.id,
+      version.conceptId,
+      version.title,
+      version.userDefinition,
+      version.scope,
+      version.importance,
+      version.supersedesId,
+      version.createdAt
+    );
 }
 
 export function listSources(database: Database.Database, courseId: string): Source[] {

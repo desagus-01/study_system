@@ -5,12 +5,15 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { openDatabase } from "../../src/main/database";
 import {
+  createConcept,
   createCourse,
   createSource,
   createSourceSegment,
+  listConceptVersions,
   listCourses,
   listSourceSegments,
-  listSources
+  listSources,
+  updateConcept
 } from "../../src/main/study-model-repository";
 
 const temporaryDirectories: string[] = [];
@@ -28,6 +31,62 @@ function openTestDatabase() {
 }
 
 describe("study model repository", () => {
+  it("creates immutable concept versions and advances the current version", () => {
+    const database = openTestDatabase();
+    const course = createCourse(database, { title: "Mathematics" });
+    const concept = createConcept(database, {
+      courseId: course.id,
+      kind: "principle",
+      canonicalLabel: "Derivative",
+      title: "Derivative as rate of change",
+      userDefinition: "The instantaneous rate at which a quantity changes.",
+      importance: 4
+    });
+    const updatedVersion = updateConcept(database, concept.id, {
+      title: "Derivative as local linear change",
+      scope: "Single-variable functions",
+      importance: 5
+    });
+
+    expect(listConceptVersions(database, concept.id)).toEqual([
+      expect.objectContaining({
+        id: concept.currentVersionId,
+        title: "Derivative as rate of change",
+        supersedesId: null,
+        importance: 4
+      }),
+      updatedVersion
+    ]);
+    expect(
+      database
+        .prepare("SELECT current_version_id AS currentVersionId FROM concepts WHERE id = ?")
+        .get(concept.id)
+    ).toEqual({ currentVersionId: updatedVersion.id });
+
+    database.close();
+  });
+
+  it("rejects invalid concept payloads and updates to missing concepts", () => {
+    const database = openTestDatabase();
+    const course = createCourse(database, { title: "Chemistry" });
+
+    expect(() =>
+      createConcept(database, {
+        courseId: course.id,
+        kind: "invalid",
+        canonicalLabel: "Atom",
+        title: "Atom"
+      })
+    ).toThrow();
+    expect(() =>
+      updateConcept(database, "c2223a7f-c5a4-4793-b0e0-5163407f3d6c", {
+        title: "Missing concept"
+      })
+    ).toThrow("Concept not found.");
+
+    database.close();
+  });
+
   it("persists courses, sources and ordered source segments", () => {
     const database = openTestDatabase();
     const course = createCourse(database, { title: "Biology" });

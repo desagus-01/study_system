@@ -41,6 +41,39 @@ export const DATABASE_MIGRATIONS: readonly DatabaseMigration[] = [
         CREATE INDEX source_segments_source_id_index ON source_segments(source_id);
       `);
     }
+  },
+  {
+    version: 2,
+    name: "create concept tables",
+    up: (database) => {
+      database.exec(`
+        CREATE TABLE concepts (
+          id TEXT PRIMARY KEY,
+          course_id TEXT NOT NULL REFERENCES courses(id),
+          kind TEXT NOT NULL CHECK (kind IN ('concept', 'principle', 'procedure', 'representation', 'problem_family', 'example', 'reference_detail')),
+          canonical_label TEXT NOT NULL,
+          status TEXT NOT NULL CHECK (status IN ('active', 'merged', 'archived')),
+          created_by TEXT NOT NULL CHECK (created_by IN ('user', 'import', 'pi_proposal')),
+          current_version_id TEXT REFERENCES concept_versions(id),
+          created_at TEXT NOT NULL
+        );
+
+        CREATE INDEX concepts_course_id_index ON concepts(course_id);
+
+        CREATE TABLE concept_versions (
+          id TEXT PRIMARY KEY,
+          concept_id TEXT NOT NULL REFERENCES concepts(id),
+          title TEXT NOT NULL,
+          user_definition TEXT,
+          scope TEXT,
+          importance INTEGER CHECK (importance BETWEEN 1 AND 5),
+          supersedes_id TEXT REFERENCES concept_versions(id),
+          created_at TEXT NOT NULL
+        );
+
+        CREATE INDEX concept_versions_concept_id_index ON concept_versions(concept_id);
+      `);
+    }
   }
 ];
 

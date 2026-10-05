@@ -1,5 +1,8 @@
 import type { z } from "zod";
 import type {
+  ConceptCreateSchema,
+  ConceptKindSchema,
+  ConceptUpdateSchema,
   CourseCreateSchema,
   PiStatusSchema,
   SourceCreateSchema,
@@ -8,6 +11,9 @@ import type {
   SystemStatusSchema
 } from "./schemas";
 
+export type ConceptCreate = z.infer<typeof ConceptCreateSchema>;
+export type ConceptKind = z.infer<typeof ConceptKindSchema>;
+export type ConceptUpdate = z.infer<typeof ConceptUpdateSchema>;
 export type CourseCreate = z.infer<typeof CourseCreateSchema>;
 export type PiStatus = z.infer<typeof PiStatusSchema>;
 export type SourceCreate = z.infer<typeof SourceCreateSchema>;
